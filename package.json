@@ -1,0 +1,32 @@
+{
+  "name": "lit-statemachine",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "build:action": "node build-lit-action.js",
+    "dev": "ts-node src/index.ts",
+    "start": "node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@lit-protocol/event-listener": "^7.0.7",
+    "@lit-protocol/lit-node-client": "^7.0.7",
+    "@types/node-fetch": "^2.6.12",
+    "dotenv": "^16.4.7",
+    "ethers": "^5.7.2",
+    "form-data": "^4.0.2",
+    "handlebars": "^4.7.8",
+    "html-entities": "^2.5.2",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.8",
+    "esbuild": "^0.25.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  }
+}
