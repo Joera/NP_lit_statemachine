@@ -84,12 +84,14 @@ export const helpers =  [
     },
     {
         name: "ifEquals",
-        helper: (a: string, b: string, options: any) => {
-            if (a === b) {
-                return options.fn(this);
-            } else {
-                return options.inverse(this);
+        helper: function(a: string, b: string, options: any) {
+            if (!options || typeof options.fn !== 'function') {
+                return '';
             }
+            if (a === b) {
+                return options.fn();
+            }
+            return typeof options.inverse === 'function' ? options.inverse() : '';
         }
     },
     {
@@ -255,8 +257,8 @@ export const helpers =  [
     },
     {
         name: "json",
-        helper: (context: string) => {
-            return JSON.stringify(context);
+        helper: (context: any) => {
+            return JSON.stringify(context, null, 2);
         }
     },
     {
