@@ -1,9 +1,16 @@
 import { model, context } from "./constants";
+import { decrypt } from "./decrypt";
 import { runQuery } from "./orbis.factory";
 
 export const getTemplateData = async (mapping : any, body : any) => {
 
     try {
+
+        const { ciphertext, dataToEncryptHash } = JSON.parse(body.content);
+
+        body.content = await decrypt(body.publication, authSig, ciphertext, dataToEncryptHash);
+
+        console.log(body.content);
     
         const collections: any = {};
 

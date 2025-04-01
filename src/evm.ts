@@ -81,8 +81,8 @@ export const evmWrite = async (
             method: 'canPublish',
             parameters: [':userAddress'],
             returnValueTest: {
-                comparator: '==',
-                value: true  
+                comparator: '=',
+                value: "true"  
             }
         }
     ];

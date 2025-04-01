@@ -49,7 +49,7 @@ const main = async () => {
           jsParams: { 
             authSig,
             publication: "0xf1d0159fab4bfb3011c24a9d8479d6699eb6c34b",
-            stream_id: "kjzl6kcym7w8y931dvunge9hpurswt48hanpln01v581ydc138hfxsnglvqnqez",
+            stream_id: "kjzl6kcym7w8y7l4imoc7zve4gg6dkyd1is7chl0s3uwpufmzgdca31wzz6py0h",
             pkpPublicKey: "0446e606edce501f2237e50e23259cae9cc4bda02044f57ab5aeaa974fceb38cb2a3ed9c27c5f02cf09a8581583547cb1d3a27e94dfc725f0b7da1cc75d33ced2e"
           } 
       });

@@ -1,6 +1,6 @@
 // import { publication } from "./constants";
 import { getConfig } from "./config.ctrl";
-import { getTemplateData } from "./templatedata.ctrlr";
+import { getTemplateData } from "./data.ctrlr";
 import { renderHTML } from "./html.ctrlr";
 import { updateRoot } from "./update.ctrlr";
 
@@ -23,7 +23,11 @@ const main = async () => {
     let templateDataResult = await Lit.Actions.runOnce({
         waitForResponse: true,
         name: "templateData",
-        jsParams: { body, mapping } 
+        jsParams: { 
+            body, 
+            mapping,
+            authSig: Lit.Auth.authSig 
+        } 
     }, async () => {   
         return await getTemplateData(mapping, body);
     });
