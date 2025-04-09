@@ -41,55 +41,173 @@ const getContextValue = (path: string, context: TemplateData): any => {
     if (trimmedPath === '@first' || trimmedPath === '@last' || trimmedPath === '@index') {
         return context[trimmedPath];
     }
-    if (trimmedPath === 'this') return context;
     
-    // Handle nested paths
+    // Handle this keyword
+    if (trimmedPath === 'this') {
+        return context.this || context;
+    }
+    
+    // Try getting from this first if it exists
+    if (context.this && typeof context.this === 'object') {
+        const fromThis = getNestedValue(trimmedPath, context.this);
+        if (fromThis !== undefined) {
+            return fromThis;
+        }
+    }
+    
+    // Fall back to root context
     return getNestedValue(trimmedPath, context);
 };
 
-// Process variables in template with support for nested paths
+// Process variables in the template
 const processVariables = (text: string, context: TemplateData): string => {
-    // Skip if no variables to process
     if (!text.includes('{{')) return text;
 
-    const regex = /{{([^{}]+)}}/g;
-    return text.replace(regex, (match, path) => {
-        // Skip helpers and blocks
-        if (path.startsWith('#') || path.startsWith('/') || path.startsWith('>')) return match;
-        
-        const value = getContextValue(path, context);
-        return value !== undefined ? value.toString() : '';
+    let result = text;
+    
+    // Handle triple braces first (unescaped HTML)
+    const triplePattern = /{{{([^}]+)}}}/g;
+    result = result.replace(triplePattern, (match, path) => {
+        const value = getContextValue(path.trim(), context);
+        return value !== undefined ? String(value) : '';
     });
+
+    // Then handle double braces (escaped)
+    const doublePattern = /{{([^#/>][^}]*)}}/g;
+    result = result.replace(doublePattern, (match, path) => {
+        const value = getContextValue(path.trim(), context);
+        return value !== undefined ? escapeHtml(String(value)) : '';
+    });
+
+    return result;
 };
 
 // Process block helpers like {{#if}}, {{#each}}, etc.
-const processBlockHelpers = (text: string, templateData: TemplateData): string => {
+const processBlockHelpers = (text: string, context: TemplateData): string => {
     // Skip if no block helpers
     if (!text.includes('{{#')) return text;
 
-    const blockRegex = /{{#(\w+)\s+([^}]+)}}([\s\S]*?){{\/\1}}/g;
-    return text.replace(blockRegex, (match, helper, args, content) => {
-        switch (helper) {
-            case 'if': {
-                const condition = evaluateCondition(args, templateData);
-                return condition ? processTemplate(content, templateData) : '';
-            }
-            case 'each': {
-                const items = getContextValue(args.trim(), templateData);
-                if (!Array.isArray(items)) return '';
+    let result = text;
+    
+    // Process if blocks first
+    const ifPattern = /{{#if\s+([^}]+)}}\s*([\s\S]*?)(?:{{else}}\s*([\s\S]*?))?{{\/if}}/g;
+    result = result.replace(ifPattern, (match, condition, content, elseContent = '') => {
+        try {
+            const trimmedCondition = condition.trim();
+            
+            // Handle eq helper in if blocks
+            if (trimmedCondition.startsWith('(eq ')) {
+                const argsStr = trimmedCondition.slice(4, -1).trim();
+                const args = argsStr.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || [];
                 
-                return items.map((item, index) => {
-                    const itemContext = {
-                        ...item,
-                        '@index': index,
-                        '@first': index === 0,
-                        '@last': index === items.length - 1
-                    };
-                    return processTemplate(content, itemContext);
-                }).join('');
+                if (args.length === 2) {
+                    const [arg1, arg2] = args;
+                    const val1 = arg1.startsWith('"') ? arg1.slice(1, -1) : 
+                               arg1.startsWith("'") ? arg1.slice(1, -1) : 
+                               getContextValue(arg1, context);
+                    const val2 = arg2.startsWith('"') ? arg2.slice(1, -1) : 
+                               arg2.startsWith("'") ? arg2.slice(1, -1) : 
+                               getContextValue(arg2, context);
+                    
+                    return val1 === val2 ? 
+                        processTemplate(content, context) : 
+                        (elseContent ? processTemplate(elseContent, context) : '');
+                }
             }
-            default:
-                return match;
+
+            // Handle regular conditions
+            const value = getContextValue(trimmedCondition, context);
+            return value ? 
+                processTemplate(content, context) : 
+                (elseContent ? processTemplate(elseContent, context) : '');
+
+        } catch (error) {
+            console.error('Error in if block:', error);
+            return '';
+        }
+    });
+
+    // Process each blocks
+    const eachPattern = /{{#each\s+([^}]+)}}\s*([\s\S]*?){{\/each}}/g;
+    result = result.replace(eachPattern, (match, arrayPath, content) => {
+        const array = getContextValue(arrayPath.trim(), context);
+        if (!Array.isArray(array)) {
+            console.error('Each block array not found or not an array:', arrayPath);
+            return '';
+        }
+
+        return array.map((item, index) => {
+            // Create a context with special variables while preserving parent context
+            const itemContext = {
+                ...context,  // Keep parent context
+                this: item,  // Set current item as 'this'
+                '@index': index,
+                '@first': index === 0,
+                '@last': index === array.length - 1,
+                '@key': arrayPath.split('.').pop() || '',
+                ...item      // Spread item properties at top level
+            };
+            
+            return processTemplate(content, itemContext);
+        }).join('');
+    });
+
+    return result;
+};
+
+// Create a map of helpers for faster lookup
+const helperMap = new Map(helpers.map(h => [h.name, h.helper]));
+
+// Process helpers in the template
+const processHelpers = (text: string, context: TemplateData): string => {
+    console.log('Input text:', text);
+    if (!text.includes('{{')) return text;
+
+    // Match both double and triple braces
+    const helperRegex = /{{{?\s*(\w+)\s+([^}]+)}}}?/g;
+    let matches = text.matchAll(helperRegex);
+    for (const match of matches) {
+        console.log('Found match:', match);
+    }
+
+    return text.replace(helperRegex, (match, helperName, args) => {
+        console.log('Processing match:', match);
+        console.log('Helper name:', helperName);
+        console.log('Args:', args);
+        
+        // Skip block helpers and partials
+        if (match.startsWith('{{#') || match.startsWith('{{>')) {
+            return match;
+        }
+
+        const helper = helperMap.get(helperName);
+        if (!helper) {
+            console.log('No helper found for:', helperName);
+            return match;
+        }
+
+        try {
+            // Split args and resolve context values
+            const resolvedArgs = args.split(' ').map(arg => {
+                const trimmed = arg.trim();
+                console.log('Processing arg:', trimmed);
+                if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+                    return trimmed.slice(1, -1);
+                }
+                if (trimmed.startsWith("'") && trimmed.endsWith("'")) {
+                    return trimmed.slice(1, -1);
+                }
+                return getContextValue(trimmed, context);
+            });
+
+            console.log('Resolved args:', resolvedArgs);
+            // Call the helper with resolved arguments
+            const result = helper(...resolvedArgs);
+            console.log('Helper result:', result);
+            return result !== undefined ? String(result) : '';
+        } catch (error) {
+            console.error(`Error processing helper ${helperName}:`, error);
+            return '';
         }
     });
 };
@@ -97,37 +215,12 @@ const processBlockHelpers = (text: string, templateData: TemplateData): string =
 export const processTemplate = (text: string, context: TemplateData): string => {
     if (!text) return '';
 
-    // Process in specific order
+    // Process in specific order: blocks first, then helpers, then variables
     let result = text;
     result = processBlockHelpers(result, context);
     result = processHelpers(result, context);
     result = processVariables(result, context);
     return result;
-};
-
-const processHelpers = (text: string, templateData: TemplateData): string => {
-    // Skip if no helpers
-    if (!text.includes('{{')) return text;
-
-    const helperRegex = /{{(\w+)\s+([^}]+)}}/g;
-    return text.replace(helperRegex, (match, helper, args) => {
-        if (helper === 'eq') {
-            const [a, b] = args.split(' ').map(arg => {
-                // Remove quotes if present
-                const trimmed = arg.trim();
-                if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
-                    return trimmed.slice(1, -1);
-                }
-                return getContextValue(trimmed, templateData);
-            });
-            return a === b ? 'true' : '';
-        }
-        if (helper === 'backgroundify') {
-            const value = getContextValue(args.trim(), templateData);
-            return value || '';
-        }
-        return match;
-    });
 };
 
 export const cleanTemplateString = (content: string): string => {
@@ -184,17 +277,13 @@ export const processPartials = async (template: string, partials: Partial[], tem
 };
 
 // HTML escape function
-const escape = (str: string): string => {
-    return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-};
-
-// Evaluate condition for if helper
-const evaluateCondition = (condition: string, context: TemplateData): boolean => {
-    const value = getContextValue(condition.trim(), context);
-    return Boolean(value);
+const escapeHtml = (str: string): string => {
+    const htmlEscapes: { [key: string]: string } = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    };
+    return str.replace(/[&<>"']/g, char => htmlEscapes[char]);
 };
