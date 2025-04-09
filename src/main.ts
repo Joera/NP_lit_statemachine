@@ -31,32 +31,34 @@ const main = async () => {
 
     validateInputs(config, mapping, body, safeAddress);
 
-    const templateDataResult = await getTemplateData(config, mapping, body, safeAddress);
-    const templateData = JSON.parse(templateDataResult);
+    console.log(config);
+
+    // const templateDataResult = await getTemplateData(config, mapping, body, safeAddress);
+    // const templateData = JSON.parse(templateDataResult);
    
-    let htmlResult = await Lit.Actions.runOnce({
-        waitForResponse: true,
-        name: "renderer",
-        jsParams: { 
-            config, 
-            mapping, 
-            templateData
-        }
-    }, async () => {    
-        return await renderHTML(config, mapping, templateData);
-    });
+    // let htmlResult = await Lit.Actions.runOnce({
+    //     waitForResponse: true,
+    //     name: "renderer",
+    //     jsParams: { 
+    //         config, 
+    //         mapping, 
+    //         templateData
+    //     }
+    // }, async () => {    
+    //     return await renderHTML(config, mapping, templateData);
+    // });
 
    // console.log('HTML result:', htmlResult);
 
-   let { newRootCid, path } = await updateRoot(pkpPublicKey, body, mapping, publication, htmlResult);
+//    let { newRootCid, path } = await updateRoot(pkpPublicKey, body, mapping, publication, htmlResult);
     
-    // Ensure we have a valid response
-    if (!newRootCid) {
-        throw new Error('Failed to update root: no CID returned');
-    }
+//     // Ensure we have a valid response
+//     if (!newRootCid) {
+//         throw new Error('Failed to update root: no CID returned');
+//     }
 
-    Lit.Actions.setResponse({ response: JSON.stringify({ success: true, rootCid: newRootCid, path: config.domains[0].url + path }) });
+//     Lit.Actions.setResponse({ response: JSON.stringify({ success: true, rootCid: newRootCid, path: config.domains[0].url + path }) });
     
-};
+// };
 
 main();

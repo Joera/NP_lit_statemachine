@@ -37,7 +37,12 @@ export const renderHTML = async (config: any, mapping: any, templateData: any) =
         }
 
         // Clean and process template
-        const template = cleanTemplateString(await templateResponse.text());
+        const template = cleanTemplateString(await templateResponse.text())
+            .replace(/^"/, '') // Remove leading quote if present
+            .replace(/"$/, '') // Remove trailing quote if present
+            .replace(/(?<=>)"/g, '') // Remove quotes after >
+            .replace(/"(?=<)/g, ''); // Remove quotes before <
+            
         if (!template) {
             console.error('Empty template after cleaning');
             return '';

@@ -211,6 +211,10 @@ export const cleanTemplateString = (content: string): string => {
         .replace(/\\n/g, '\n')
         .replace(/\\"/g, '"')
         .replace(/\\\\/g, '\\')
+        .replace(/^"/, '') // Remove leading quote
+        .replace(/"$/, '') // Remove trailing quote
+        .replace(/(?<=>)"\s*/g, '') // Remove quotes and spaces after >
+        .replace(/\s*"(?=<)/g, '') // Remove quotes and spaces before <
         .trim();
 };
 
@@ -247,11 +251,14 @@ export const processPartials = async (template: string, partials: Partial[], tem
         for (const [name, content] of Object.entries(processedPartials)) {
             const regex = new RegExp(`{{\\s*>\\s*${name}\\s*}}`, 'g');
             if (regex.test(html)) {
+                // Clean the content again after replacing to handle any nested quotes
                 html = html.replace(regex, content);
                 changed = true;
             }
         }
         depth++;
+        // Clean any quotes that might have been introduced
+        html = cleanTemplateString(html);
     }
     
     // Process the complete template after all partials are inserted
