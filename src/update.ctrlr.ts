@@ -32,7 +32,7 @@ export const updateRoot = async (pkpPublicKey: string, body: any, mapping: any, 
 
         console.log(`update root cid result: ${JSON.stringify(updateRootCidResult)}`);
 
-        return newRootCid;
+        return { newRootCid, path };
     
     } catch (error) {
         console.error("Error updating root CID:", error);

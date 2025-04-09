@@ -1,12 +1,21 @@
 // import { publication } from "./constants";
+import { validateInputs } from "./checks";
 import { getConfig } from "./config.ctrl";
 import { getTemplateData } from "./data.ctrlr";
 import { renderHTML } from "./html.ctrlr";
 import { updateRoot } from "./update.ctrlr";
+import { AuthSig } from "@lit-protocol/types";
 
+declare global {
+    // const Lit: any;
+    const safeAddress: string;
+    const stream_id: string;
+    const publication: string;
+    const pkpPublicKey: string;
+}
 
 const main = async () => {
-    
+
     let configResult = await Lit.Actions.runOnce({
         waitForResponse: true,
         name: "config",
@@ -20,18 +29,9 @@ const main = async () => {
     const config = configResult.config;
     const mapping = configResult.mapping;
 
-    let templateDataResult = await Lit.Actions.runOnce({
-        waitForResponse: true,
-        name: "templateData",
-        jsParams: { 
-            body, 
-            mapping,
-            authSig: Lit.Auth.authSig 
-        } 
-    }, async () => {   
-        return await getTemplateData(mapping, body);
-    });
+    validateInputs(config, mapping, body, safeAddress);
 
+    const templateDataResult = await getTemplateData(config, mapping, body, safeAddress);
     const templateData = JSON.parse(templateDataResult);
    
     let htmlResult = await Lit.Actions.runOnce({
@@ -46,14 +46,16 @@ const main = async () => {
         return await renderHTML(config, mapping, templateData);
     });
 
-    let newRootCid = await updateRoot(pkpPublicKey, body, mapping, publication, htmlResult);
+   // console.log('HTML result:', htmlResult);
+
+   let { newRootCid, path } = await updateRoot(pkpPublicKey, body, mapping, publication, htmlResult);
     
     // Ensure we have a valid response
     if (!newRootCid) {
         throw new Error('Failed to update root: no CID returned');
     }
 
-    Lit.Actions.setResponse({ response: JSON.stringify({ success: true, rootCid: newRootCid }) });
+    Lit.Actions.setResponse({ response: JSON.stringify({ success: true, rootCid: newRootCid, path: config.domains[0].url + path }) });
     
 };
 

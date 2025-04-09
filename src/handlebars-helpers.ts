@@ -75,11 +75,29 @@ export const helpers =  [
     {
         name: "backgroundify",
         helper: (content: string) => {
-            if (!content) return '';
+            console.log('backgroundify helper called with:', content);
+            console.log('content type:', typeof content);
             
-            content = content.replace(/<p>/g,'<p><span>');
-            content = content.replace(/<\/p>/g,'</span></p>');
-            return content;
+            if (!content) {
+                console.log('Content is empty');
+                return '';
+            }
+            
+            try {
+                if (typeof content !== 'string') {
+                    console.log('Converting content to string:', content);
+                    content = String(content);
+                }
+                
+                content = content.replace(/<p>/g,'<p><span>');
+                content = content.replace(/<\/p>/g,'</span></p>');
+                
+                console.log('backgroundify result:', content);
+                return content;
+            } catch (error) {
+                console.error('Error in backgroundify helper:', error);
+                return '';
+            }
         }
     },
     {
@@ -246,6 +264,39 @@ export const helpers =  [
         name: "index_of",
         helper: (context: any[], index: number) => {
             return context[index];
+        }
+    },
+    {
+        name: "formatDate",
+        helper: (date: string | number) => {
+            try {
+                console.log('formatDate input:', date, typeof date);
+                
+                let parsed;
+                if (typeof date === 'string') {
+                    // Try parsing as ISO string first
+                    parsed = new Date(date);
+                    // If invalid, try parsing as Unix timestamp
+                    if (isNaN(parsed.getTime())) {
+                        parsed = new Date(parseInt(date) * 1000);
+                    }
+                } else {
+                    // Assume number is Unix timestamp
+                    parsed = new Date(date * 1000);
+                }
+
+                if (isNaN(parsed.getTime())) {
+                    console.error('formatDate: Invalid date:', date);
+                    return '';
+                }
+
+                const result = parsed.toISOString();
+                console.log('formatDate result:', result);
+                return result;
+            } catch (error) {
+                console.error('formatDate error:', error);
+                return '';
+            }
         }
     },
     {

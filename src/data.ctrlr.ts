@@ -1,17 +1,23 @@
+import { AuthSig } from "@lit-protocol/auth-helpers";
 import { model, context } from "./constants";
 import { decrypt } from "./decrypt";
 import { runQuery } from "./orbis.factory";
+import { validateInputs } from "./checks";
 
-export const getTemplateData = async (mapping : any, body : any) => {
+export const getTemplateData = async (config : any, mapping : any, body : any, safeAddress: string) => {
 
     try {
 
-        const { ciphertext, dataToEncryptHash } = JSON.parse(body.content);
+        // console.log(config);
 
-        body.content = await decrypt(body.publication, authSig, ciphertext, dataToEncryptHash);
+        if (config.encrypted) {
+            
+            const { ciphertext, dataToEncryptHash } = JSON.parse(body.content);
+            const decryptedContent = await decrypt(body.publication, safeAddress, ciphertext, dataToEncryptHash);
+            console.log('Decryption successful');
+            body.content = decryptedContent;
+        }
 
-        console.log(body.content);
-    
         const collections: any = {};
 
         for (const collection of mapping.collections) {
@@ -43,10 +49,11 @@ export const getTemplateData = async (mapping : any, body : any) => {
         };
 
         return JSON.stringify(templateData);
+        
 
     } catch (error) {
         
         console.error('Error in templateData:', error);
-        return null;
+        return JSON.stringify({});
     }
 }

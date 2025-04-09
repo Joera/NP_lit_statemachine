@@ -44,7 +44,6 @@ export const getPublicationConfig = async (configCid : string, post_type: string
                 mapping
             }
 
-            return config.name;
 
         } catch (error) {
             console.error("Error in getPublicationConfig:", error);

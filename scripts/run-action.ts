@@ -5,7 +5,7 @@ import * as ethers from "ethers";
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import 'dotenv/config';
-import { createSessionSignatures } from "../src/session";
+import { createSessionSignatures } from "./session";
 
 const epk = process.env.ETHEREUM_PRIVATE_KEY || "";
 
@@ -37,7 +37,7 @@ const main = async () => {
     const sessionSignatures = await createSessionSignatures(litNodeClient, ethersWallet);
 
     // Get authSig from session signatures
-    console.log('Session signatures:', JSON.stringify(sessionSignatures, null, 2));
+    // console.log('Session signatures:', JSON.stringify(sessionSignatures, null, 2));
     const nodeUrl = Object.keys(sessionSignatures)[0];
     const authSig = sessionSignatures[nodeUrl];
 
@@ -47,9 +47,9 @@ const main = async () => {
           code: actionCode,
           // ipfsId: "QmQTwEWvftVse7dfo9yvBbwCHXiLXgwCCADQEEYdeJ6UAX",
           jsParams: { 
-            authSig,
+            safeAddress: "0x47e03A42C07a09faB017b2a1011284d28C88121D",
             publication: "0xf1d0159fab4bfb3011c24a9d8479d6699eb6c34b",
-            stream_id: "kjzl6kcym7w8y7l4imoc7zve4gg6dkyd1is7chl0s3uwpufmzgdca31wzz6py0h",
+            stream_id: "kjzl6kcym7w8y918zjr4eubhn7rhhgbhxopo9ys7yx6l0xvqnxw09i40q1x3nel", //"kjzl6kcym7w8y7l4imoc7zve4gg6dkyd1is7chl0s3uwpufmzgdca31wzz6py0h",
             pkpPublicKey: "0446e606edce501f2237e50e23259cae9cc4bda02044f57ab5aeaa974fceb38cb2a3ed9c27c5f02cf09a8581583547cb1d3a27e94dfc725f0b7da1cc75d33ced2e"
           } 
       });

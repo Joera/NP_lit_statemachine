@@ -1,49 +1,96 @@
 import { AuthSig } from "@lit-protocol/auth-helpers";
 
-export const decrypt = async (publicationContract: string, authSig: AuthSig, ciphertext: string, dataToEncryptHash: string) => {
+export const decrypt = async (publicationContract: string, safeAddress: string, ciphertext: string, dataToEncryptHash: string) => {
 
-    console.log(publicationContract);
-    console.log('Auth sig:', authSig);
-    
-    // Extract the wallet address from capabilities
-    const walletAddress = JSON.parse(authSig.signedMessage).capabilities[0].address;
-    console.log('Wallet address:', walletAddress);
-    
-    const accessControlConditions = [
+    const evmContractConditions = [
         {
             contractAddress: publicationContract,
-            standardContractType: "",
-            chain: "ethereum",
-            method: "canPublish",
-            parameters: [walletAddress], // Use actual wallet address instead of :userAddress
+            functionName: "canPublish",
+            functionParams: [safeAddress],
+            functionAbi: {
+                inputs: [
+                    {
+                        internalType: "address",
+                        name: "_author",
+                        type: "address"
+                    }
+                ],
+                name: "canPublish",
+                outputs: [
+                    {
+                        internalType: "bool",
+                        name: "",
+                        type: "bool"
+                    }
+                ],
+                stateMutability: "view",
+                type: "function"
+            },
+            chain: "baseSepolia",
             returnValueTest: {
+                key: "",
+                comparator: "=",
+                value: "true"
+            }
+        },
+        { operator: "and" },
+        {
+            contractAddress: safeAddress,
+            functionName: "isOwner",
+            functionParams: [":userAddress"],
+            functionAbi: {
+                inputs: [
+                    {
+                        internalType: "address",
+                        name: "_userAddress",
+                        type: "address"
+                    }
+                ],
+                name: "isOwner",
+                outputs: [
+                    {
+                        internalType: "bool",
+                        name: "",
+                        type: "bool"
+                    }
+                ],
+                stateMutability: "view",
+                type: "function"
+            },
+            chain: "baseSepolia",
+            returnValueTest: {
+                key: "",
                 comparator: "=",
                 value: "true"
             }
         }
     ];
 
+
    
     try {
-        console.log('Access control conditions:', JSON.stringify(accessControlConditions, null, 2));
+        // console.log('Access control conditions:', JSON.stringify(evmContractConditions, null, 2));
+        // console.log("ciphertext: ", ciphertext);
+        // console.log(authSig.sig);
 
-        const resp = await Lit.Actions.decryptAndCombine({
-            accessControlConditions,
-            ciphertext,
-            dataToEncryptHash,
-            chain: 'ethereum',
-            authMethod: {
-                authMethodType: 1,
-                accessToken: authSig 
-            }
-        });
+        const decryptionParams = {
+            accessControlConditions: evmContractConditions,
+            ciphertext: ciphertext,
+            dataToEncryptHash: dataToEncryptHash,
+            authSig: null,
+            chain: 'baseSepolia'
+        };
 
-        console.log('Decryption response:', resp);
-        return resp;
+        const decrypted = await Lit.Actions.decryptAndCombine(decryptionParams);
 
+        if (!decrypted) {
+            throw new Error('Failed to decrypt content');
+        }
+
+        return decrypted;
 
     } catch (error) {
-        console.error('Error decrypting:', error);
-        return null;
+        console.error('Error decrypting:', error);              
+        throw error;
     }
 }

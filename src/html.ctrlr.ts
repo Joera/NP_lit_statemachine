@@ -1,52 +1,65 @@
-import { cleanTemplateString, processPartials, processHelpers } from "./handlebars.factory";
+import { cleanTemplateString, processPartials, processTemplate } from "./handlebars.factory";
 
 export const renderHTML = async (config: any, mapping: any, templateData: any) => {
-
     try {
+        // Validate inputs
+        if (!config?.template_cid || !mapping?.file) {
+            console.error('Missing required config:', { template_cid: config?.template_cid, file: mapping?.file });
+            return '';
+        }
+
+        // Fetch template array
         const response = await fetch(`https://ipfs.transport-union.dev/api/v0/dag/get?arg=${config.template_cid}`, {
             method: 'POST'
         });
+        
         if (!response.ok) {
-            console.log('Template fetch failed');
-            return;
+            console.error('Template fetch failed:', response.status, response.statusText);
+            return '';
         }
         
         const templateArray = await response.json();
         const templateFile = templateArray.find(t => t.path.includes(mapping.file));
-        if (!templateFile) {
-            console.log('Template file not found');
-            return;
+        
+        if (!templateFile?.cid) {
+            console.error('Template file not found:', mapping.file);
+            return '';
         }
 
-        // console.log("template",templateFile.cid);
-
+        // Fetch template content
         const templateResponse = await fetch(`https://ipfs.transport-union.dev/api/v0/cat?arg=${templateFile.cid}`, {
             method: 'POST'
         });
+        
         if (!templateResponse.ok) {
-            console.log('Template content fetch failed');
-            return;
+            console.error('Template content fetch failed:', templateResponse.status, templateResponse.statusText);
+            return '';
         }
 
-        let template = cleanTemplateString(await templateResponse.text());
+        // Clean and process template
+        const template = cleanTemplateString(await templateResponse.text());
+        if (!template) {
+            console.error('Empty template after cleaning');
+            return '';
+        }
 
-        // console.log("template",templateResponse);
+        // Find and process partials
         const partialFiles = templateArray.filter(t => t.path.includes("partials/"));
-        let result = await processPartials(template, partialFiles, templateData);
-        result = processHelpers(result, templateData);
-
-        Object.entries(templateData).forEach(([key, value]) => {
-            const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');            
-            result = result.replace(regex, value?.toString() || '');
-        });
-
-        // console.log("result",result);
-
-        return result.replace(/\n{2,}/g, '\n').replace(/>\s+</g, '>\n<').trim();
+        const result = await processPartials(template, partialFiles, templateData);
         
+        if (!result) {
+            console.error('Empty result after processing');
+            return '';
+        }
+
+        // Clean up whitespace in final result
+        return result
+            .replace(/\n{2,}/g, '\n')
+            .replace(/>\s+</g, '>\n<')
+            .trim();
+
     } catch (error) {
         console.error('Error in renderer:', error);
-        
+        return '';
     }
-
-}
+};
