@@ -75,24 +75,16 @@ export const helpers =  [
     {
         name: "backgroundify",
         helper: (content: string) => {
-            console.log('backgroundify helper called with:', content);
-            console.log('content type:', typeof content);
-            
-            if (!content) {
-                console.log('Content is empty');
-                return '';
-            }
+            if (!content) return '';
             
             try {
                 if (typeof content !== 'string') {
-                    console.log('Converting content to string:', content);
                     content = String(content);
                 }
                 
                 content = content.replace(/<p>/g,'<p><span>');
                 content = content.replace(/<\/p>/g,'</span></p>');
                 
-                console.log('backgroundify result:', content);
                 return content;
             } catch (error) {
                 console.error('Error in backgroundify helper:', error);
@@ -270,8 +262,6 @@ export const helpers =  [
         name: "formatDate",
         helper: (date: string | number) => {
             try {
-                console.log('formatDate input:', date, typeof date);
-                
                 let parsed;
                 if (typeof date === 'string') {
                     // Try parsing as ISO string first
@@ -290,9 +280,14 @@ export const helpers =  [
                     return '';
                 }
 
-                const result = parsed.toISOString();
-                console.log('formatDate result:', result);
-                return result;
+                // Format date in Dutch style
+                const formatter = new Intl.DateTimeFormat('nl-NL', {
+                    day: 'numeric',
+                    month: 'numeric',
+                    year: 'numeric'
+                });
+                
+                return formatter.format(parsed);
             } catch (error) {
                 console.error('formatDate error:', error);
                 return '';

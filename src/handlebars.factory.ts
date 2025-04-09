@@ -160,37 +160,21 @@ const helperMap = new Map(helpers.map(h => [h.name, h.helper]));
 
 // Process helpers in the template
 const processHelpers = (text: string, context: TemplateData): string => {
-    console.log('Input text:', text);
-    if (!text.includes('{{')) return text;
-
     // Match both double and triple braces
     const helperRegex = /{{{?\s*(\w+)\s+([^}]+)}}}?/g;
-    let matches = text.matchAll(helperRegex);
-    for (const match of matches) {
-        console.log('Found match:', match);
-    }
-
     return text.replace(helperRegex, (match, helperName, args) => {
-        console.log('Processing match:', match);
-        console.log('Helper name:', helperName);
-        console.log('Args:', args);
-        
         // Skip block helpers and partials
         if (match.startsWith('{{#') || match.startsWith('{{>')) {
             return match;
         }
 
         const helper = helperMap.get(helperName);
-        if (!helper) {
-            console.log('No helper found for:', helperName);
-            return match;
-        }
+        if (!helper) return match;
 
         try {
             // Split args and resolve context values
             const resolvedArgs = args.split(' ').map(arg => {
                 const trimmed = arg.trim();
-                console.log('Processing arg:', trimmed);
                 if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
                     return trimmed.slice(1, -1);
                 }
@@ -200,10 +184,8 @@ const processHelpers = (text: string, context: TemplateData): string => {
                 return getContextValue(trimmed, context);
             });
 
-            console.log('Resolved args:', resolvedArgs);
             // Call the helper with resolved arguments
             const result = helper(...resolvedArgs);
-            console.log('Helper result:', result);
             return result !== undefined ? String(result) : '';
         } catch (error) {
             console.error(`Error processing helper ${helperName}:`, error);
